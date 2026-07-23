@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Livewire\AdminDashboard;
 use App\Http\Livewire\AdminUserManagement;
 use App\Http\Livewire\Dashboard;
 use App\Http\Livewire\WorkHistory;
@@ -76,10 +77,8 @@ Route::middleware(['auth'])->group(function () {
     // Admin-only routes
     // ============================================
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
-        // Admin Dashboard
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard');
-        })->name('dashboard');
+        // Admin Dashboard (Livewire component)
+        Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
 
         // User Management (Livewire component)
         Route::get('/users', AdminUserManagement::class)->name('users');
