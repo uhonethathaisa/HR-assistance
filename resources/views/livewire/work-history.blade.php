@@ -79,9 +79,13 @@
                 </div>
             </div>
 
-            <button type="button" id="import-btn"
-                    class="mt-4 w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 disabled:opacity-50">
-                🚀 Import with AI
+            <button type="button" id="import-btn" data-route="{{ route('import.cv') }}"
+                    class="mt-4 w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 disabled:opacity-50 inline-flex items-center justify-center">
+                <span id="btn-text">🚀 Import with AI</span>
+                <svg id="btn-spinner" class="hidden animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             </button>
         </form>
 
@@ -340,6 +344,65 @@
                 });
             }
 
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const loadingEl = document.getElementById('import-loading');
+            const loadingStatus = document.getElementById('loading-status');
+            const loadingProgress = document.getElementById('loading-progress');
+            const loadingBar = document.getElementById('loading-bar');
+
+            /**
+             * Update the progress bar and status text
+             */
+            function updateProgress(pct, status) {
+                loadingProgress.textContent = pct + '%';
+                loadingBar.style.width = pct + '%';
+                loadingStatus.textContent = status;
+            }
+
+            /**
+             * Show the loading UI and disable the button
+             */
+            function showLoading() {
+                importBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+                loadingEl.classList.remove('hidden');
+                updateProgress(0, 'Uploading file...');
+            }
+
+            /**
+             * Hide the loading UI and re-enable the button
+             */
+            function hideLoading() {
+                importBtn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                setTimeout(function() {
+                    loadingEl.classList.add('hidden');
+                    updateProgress(0, 'Processing...');
+                }, 2000);
+            }
+
+            /**
+             * Simulate progress over a given duration, calling onComplete when done
+             */
+            function simulateProgress(startPct, endPct, duration, statusPrefix, onComplete) {
+                const startTime = Date.now();
+                const tick = function() {
+                    const elapsed = Date.now() - startTime;
+                    const fraction = Math.min(elapsed / duration, 1);
+                    const pct = startPct + Math.round((endPct - startPct) * fraction);
+                    updateProgress(pct, statusPrefix + (fraction < 1 ? '...' : ''));
+                    if (fraction < 1) {
+                        requestAnimationFrame(tick);
+                    } else if (onComplete) {
+                        onComplete();
+                    }
+                };
+                requestAnimationFrame(tick);
+            }
+
             // Handle import button click
             if (importBtn) {
                 importBtn.addEventListener('click', function(e) {
@@ -350,8 +413,11 @@
                         return;
                     }
 
-                    const formData = new FormData();
-                    formData.append('file', fileInput.files[0]);
+                    const file = fileInput.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File is too large. Maximum allowed size is 5MB.');
+                        return;
+                    }
 
                     const csrfToken = document.querySelector('meta[name="csrf-token"]');
                     if (!csrfToken) {
@@ -359,59 +425,65 @@
                         return;
                     }
 
-                    // Show loading
-                    importBtn.disabled = true;
-                    importBtn.textContent = 'Processing...';
-                    document.getElementById('import-loading').classList.remove('hidden');
+                    const formData = new FormData();
+                    formData.append('file', file);
 
-                    fetch('{{ route('import.cv') }}', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken.content,
-                            'Accept': 'application/json',
-                        },
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Server error: ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        document.getElementById('loading-status').textContent = '✅ Import complete!';
-                        if (data.success) {
-                            // If Livewire is available, emit the event
-                            if (window.Livewire) {
-                                Livewire.emit('importCompleted', data.data);
-                            } else {
-                                // Fallback: reload page after a delay
-                                alert('✅ ' + data.message + '\nReloading to show data.');
-                                location.reload();
+                    // Show loading UI
+                    showLoading();
+
+                    // Phase 1: Simulate upload progress (0% → 40%)
+                    simulateProgress(0, 40, 2000, '📤 Uploading', function() {
+                        updateProgress(40, '📄 Extracting text from document...');
+
+                        // Phase 2: Send the actual request
+                        fetch(importBtn.dataset.route, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken.content,
+                                'Accept': 'application/json',
+                            },
+                            body: formData
+                        })
+                        .then(function(response) {
+                            if (!response.ok) {
+                                throw new Error('Server error: ' + response.status);
                             }
-                        } else {
-                            alert('❌ ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        document.getElementById('loading-status').textContent = '❌ Error: ' + error.message;
-                        alert('❌ Request failed. Check console for details.');
-                    })
-                    .finally(() => {
-                        importBtn.disabled = false;
-                        importBtn.textContent = '🚀 Import with AI';
-                        // Hide loading after 2 seconds
-                        setTimeout(() => {
-                            document.getElementById('import-loading').classList.add('hidden');
-                        }, 2000);
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            // Phase 3: Simulate AI parsing progress (40% → 90%)
+                            simulateProgress(40, 90, 1500, '🤖 AI parsing', function() {
+                                updateProgress(95, '✅ Finalizing...');
+
+                                setTimeout(function() {
+                                    if (data.success) {
+                                        updateProgress(100, '✅ Import complete!');
+                                        if (window.Livewire) {
+                                            Livewire.dispatch('importCompleted', { data: data.data });
+                                        } else {
+                                            alert('✅ ' + data.message);
+                                            location.reload();
+                                        }
+                                    } else {
+                                        updateProgress(100, '❌ Import failed');
+                                        alert('❌ ' + data.message);
+                                    }
+                                    hideLoading();
+                                }, 500);
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error('Error:', error);
+                            loadingStatus.textContent = '❌ Error: ' + error.message;
+                            alert('❌ Request failed. Check console for details.');
+                            hideLoading();
+                        });
                     });
                 });
             }
 
             // Reset file function (exposed globally)
             window.resetFile = function() {
-                const fileInput = document.getElementById('file-upload');
                 if (fileInput) {
                     fileInput.value = '';
                     document.getElementById('file-info').classList.add('hidden');
@@ -425,11 +497,10 @@
                 zone.classList.remove('border-purple-500', 'bg-purple-500/5');
                 const file = event.dataTransfer.files[0];
                 if (file) {
-                    const input = document.getElementById('file-upload');
                     const dt = new DataTransfer();
                     dt.items.add(file);
-                    input.files = dt.files;
-                    input.dispatchEvent(new Event('change'));
+                    fileInput.files = dt.files;
+                    fileInput.dispatchEvent(new Event('change'));
                 }
             };
         });

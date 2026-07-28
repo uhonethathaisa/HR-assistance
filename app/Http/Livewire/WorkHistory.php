@@ -36,6 +36,8 @@ class WorkHistory extends Component
     public $extractedSkills = [];
     public $extractedQualifications = [];
 
+    protected $listeners = ['importCompleted' => 'populateFromImport'];
+
     protected $rules = [
         'company_name' => 'required|string|max:255',
         'job_title' => 'required|string|max:255',
@@ -310,6 +312,42 @@ class WorkHistory extends Component
         $this->showImportForm = true;
         $this->file = null;
         $this->uploadProgress = 0;
+    }
+
+    /**
+     * Listen for the importCompleted event dispatched from JavaScript
+     * after the AJAX upload to /import-cv returns successfully.
+     */
+    public function populateFromImport($data)
+    {
+        if (empty($data)) {
+            $this->dispatch('notify', [
+                'message' => 'No data received from the import.',
+                'type' => 'error'
+            ]);
+            return;
+        }
+
+        $this->extractedData = $data['experiences'] ?? [];
+        $this->extractedEducations = $data['educations'] ?? [];
+        $this->extractedSkills = $data['skills'] ?? [];
+        $this->extractedQualifications = $data['qualifications'] ?? [];
+
+        if (count($this->extractedData) > 0) {
+            $this->showPreview = true;
+            $this->showImportForm = false;
+            $this->showForm = false;
+
+            $this->dispatch('notify', [
+                'message' => count($this->extractedData) . ' work history entr' . (count($this->extractedData) === 1 ? 'y' : 'ies') . ' extracted successfully!',
+                'type' => 'success'
+            ]);
+        } else {
+            $this->dispatch('notify', [
+                'message' => 'No work history entries found in the parsed data.',
+                'type' => 'error'
+            ]);
+        }
     }
 
     public function render()
