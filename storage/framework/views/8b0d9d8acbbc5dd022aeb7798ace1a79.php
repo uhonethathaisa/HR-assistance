@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/work-history.blade.php --}}
+
 <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
@@ -7,7 +7,7 @@
             <p class="text-sm text-gray-400 mt-0.5">Manage your professional experience</p>
         </div>
         <div class="flex items-center gap-3">
-            @if(!$showForm && !$showImportForm && !$showPreview)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$showForm && !$showImportForm && !$showPreview): ?>
                 <button wire:click="showImport"
                         class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white text-sm font-medium rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,8 +15,8 @@
                     </svg>
                     Import with AI
                 </button>
-            @endif
-            @if(!$showForm && !$showImportForm && !$showPreview)
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$showForm && !$showImportForm && !$showPreview): ?>
                 <button wire:click="create"
                         class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white text-sm font-medium rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,12 +24,12 @@
                     </svg>
                     Add Experience
                 </button>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </div>
 
     <!-- ==== AI IMPORT SECTION (Standard HTTP Upload) ==== -->
-    @if($showImportForm && !$showPreview)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showImportForm && !$showPreview): ?>
     <div class="bg-[#13131A] border border-[#1C1C1E] rounded-xl p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <div>
@@ -40,7 +40,7 @@
         </div>
 
         <form id="import-form" enctype="multipart/form-data">
-            @csrf
+            <?php echo csrf_field(); ?>
             <div class="border-2 border-dashed border-[#2D2D30] rounded-lg p-8 text-center hover:border-purple-500/50 transition-all duration-300 cursor-pointer"
                  onclick="document.getElementById('file-upload').click()"
                  ondrop="handleFileDrop(event)"
@@ -103,15 +103,15 @@
             </button>
         </div>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <!-- Preview Extracted Data -->
-    @if($showPreview && count($extractedData) > 0)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showPreview && count($extractedData) > 0): ?>
     <div class="bg-[#13131A] border border-[#1C1C1E] rounded-xl p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="text-white font-semibold">✨ Extracted Work History</h3>
-                <p class="text-sm text-gray-400">{{ count($extractedData) }} entries found</p>
+                <p class="text-sm text-gray-400"><?php echo e(count($extractedData)); ?> entries found</p>
             </div>
             <div class="flex space-x-2">
                 <button wire:click="saveAllExtracted"
@@ -126,46 +126,49 @@
         </div>
 
         <div class="space-y-4">
-            @foreach($extractedData as $index => $entry)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $extractedData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $entry): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
             <div class="bg-[#1C1C1E] rounded-lg p-4 border border-[#2D2D30] hover:border-purple-500/30 transition-all duration-300">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="flex items-center space-x-3">
-                            <span class="text-lg font-semibold text-white">{{ $entry['company_name'] ?? 'Unknown Company' }}</span>
-                            <span class="text-sm text-purple-400">{{ $entry['job_title'] ?? 'Position' }}</span>
-                            @if($entry['is_current'] ?? false)
+                            <span class="text-lg font-semibold text-white"><?php echo e($entry['company_name'] ?? 'Unknown Company'); ?></span>
+                            <span class="text-sm text-purple-400"><?php echo e($entry['job_title'] ?? 'Position'); ?></span>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($entry['is_current'] ?? false): ?>
                                 <span class="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">Current</span>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
                         <p class="text-sm text-gray-400 mt-1">
-                            {{ $entry['location'] ?? '' }}
-                            {{ $entry['start_date'] ?? '' }}
-                            @if(!empty($entry['start_date']) && !($entry['is_current'] ?? false))
-                                → {{ $entry['end_date'] ?? '' }}
-                            @endif
-                            @if($entry['is_current'] ?? false)
+                            <?php echo e($entry['location'] ?? ''); ?>
+
+                            <?php echo e($entry['start_date'] ?? ''); ?>
+
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($entry['start_date']) && !($entry['is_current'] ?? false)): ?>
+                                → <?php echo e($entry['end_date'] ?? ''); ?>
+
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($entry['is_current'] ?? false): ?>
                                 → Present
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </p>
-                        <p class="text-sm text-gray-300 mt-2">{{ $entry['description'] ?? '' }}</p>
+                        <p class="text-sm text-gray-300 mt-2"><?php echo e($entry['description'] ?? ''); ?></p>
                     </div>
-                    <button wire:click="saveExtractedEntry({{ $index }})"
+                    <button wire:click="saveExtractedEntry(<?php echo e($index); ?>)"
                             class="ml-4 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm rounded-lg transition-all duration-300 flex-shrink-0">
                         Save Entry
                     </button>
                 </div>
             </div>
-            @endforeach
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
         </div>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <!-- Manual Entry Form -->
-    @if($showForm)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showForm): ?>
     <div class="bg-[#13131A] border border-[#1C1C1E] rounded-xl p-6 mb-6">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h3 class="text-white font-semibold">{{ $editingId ? 'Edit Experience' : 'Add Experience' }}</h3>
+                <h3 class="text-white font-semibold"><?php echo e($editingId ? 'Edit Experience' : 'Add Experience'); ?></h3>
                 <p class="text-sm text-gray-400">Enter your work history details</p>
             </div>
         </div>
@@ -177,14 +180,28 @@
                     <input type="text" wire:model="company_name"
                            class="w-full bg-[#1C1C1E] border border-[#2D2D30] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                            placeholder="e.g. Acme Corp">
-                    @error('company_name') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['company_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-400"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Job Title *</label>
                     <input type="text" wire:model="job_title"
                            class="w-full bg-[#1C1C1E] border border-[#2D2D30] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                            placeholder="e.g. Software Engineer">
-                    @error('job_title') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['job_title'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-400"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Location</label>
@@ -203,14 +220,28 @@
                     <label class="block text-sm font-medium text-gray-300 mb-1">Start Date *</label>
                     <input type="date" wire:model="start_date"
                            class="w-full bg-[#1C1C1E] border border-[#2D2D30] rounded-lg px-4 py-2.5 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors">
-                    @error('start_date') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['start_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-400"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">End Date</label>
                     <input type="date" wire:model="end_date"
                            class="w-full bg-[#1C1C1E] border border-[#2D2D30] rounded-lg px-4 py-2.5 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
-                           @if($is_current) disabled @endif>
-                    @error('end_date') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                           <?php if($is_current): ?> disabled <?php endif; ?>>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['end_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-400"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
 
@@ -219,7 +250,14 @@
                 <textarea wire:model="description" rows="4"
                           class="w-full bg-[#1C1C1E] border border-[#2D2D30] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none"
                           placeholder="Describe your responsibilities and achievements..."></textarea>
-                @error('description') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['description'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-sm text-red-400"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </div>
 
             <div class="flex justify-end space-x-3 pt-2">
@@ -229,60 +267,63 @@
                 </button>
                 <button type="submit"
                         class="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white text-sm font-medium rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40">
-                    {{ $editingId ? 'Update' : 'Save' }}
+                    <?php echo e($editingId ? 'Update' : 'Save'); ?>
+
                 </button>
             </div>
         </form>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <!-- Work History List -->
     <div class="space-y-3">
-        @forelse($workHistory as $work)
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $workHistory; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $work): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
         <div class="bg-[#13131A] border border-[#1C1C1E] rounded-xl p-5 hover:border-purple-500/30 transition-all duration-300 group">
             <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span class="text-white font-bold text-sm">{{ substr($work->company_name, 0, 1) }}</span>
+                            <span class="text-white font-bold text-sm"><?php echo e(substr($work->company_name, 0, 1)); ?></span>
                         </div>
                         <div class="min-w-0">
-                            <h3 class="text-white font-semibold truncate">{{ $work->company_name }}</h3>
-                            <p class="text-sm text-purple-400">{{ $work->job_title }}</p>
+                            <h3 class="text-white font-semibold truncate"><?php echo e($work->company_name); ?></h3>
+                            <p class="text-sm text-purple-400"><?php echo e($work->job_title); ?></p>
                         </div>
-                        @if($work->is_current)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($work->is_current): ?>
                             <span class="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full flex-shrink-0">Current</span>
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
                     <div class="mt-2 flex items-center space-x-4 text-sm text-gray-400">
-                        @if($work->location)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($work->location): ?>
                             <span class="flex items-center">
                                 <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
-                                {{ $work->location }}
+                                <?php echo e($work->location); ?>
+
                             </span>
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         <span class="flex items-center">
                             <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
-                            {{ $work->start_date->format('M Y') }} - {{ $work->is_current ? 'Present' : ($work->end_date ? $work->end_date->format('M Y') : '') }}
+                            <?php echo e($work->start_date->format('M Y')); ?> - <?php echo e($work->is_current ? 'Present' : ($work->end_date ? $work->end_date->format('M Y') : '')); ?>
+
                         </span>
                     </div>
-                    @if($work->description)
-                        <p class="mt-2 text-sm text-gray-300 line-clamp-2">{{ $work->description }}</p>
-                    @endif
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($work->description): ?>
+                        <p class="mt-2 text-sm text-gray-300 line-clamp-2"><?php echo e($work->description); ?></p>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div class="flex items-center space-x-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button wire:click="edit({{ $work->id }})"
+                    <button wire:click="edit(<?php echo e($work->id); ?>)"
                             class="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all duration-300">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                     </button>
-                    <button wire:click="delete({{ $work->id }})"
+                    <button wire:click="delete(<?php echo e($work->id); ?>)"
                             wire:confirm="Are you sure you want to delete this entry?"
                             class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-300">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,7 +333,7 @@
                 </div>
             </div>
         </div>
-        @empty
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
             <div class="bg-[#13131A] border border-[#1C1C1E] rounded-xl p-12 text-center">
                 <div class="w-20 h-20 bg-[#1C1C1E] rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,11 +359,11 @@
                     </button>
                 </div>
             </div>
-        @endforelse
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     </div>
 
     <!-- Drag & Drop handler + Livewire event listener -->
-    @push('scripts')
+    <?php $__env->startPush('scripts'); ?>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('file-upload');
@@ -364,7 +405,7 @@
                     importBtn.textContent = 'Processing...';
                     document.getElementById('import-loading').classList.remove('hidden');
 
-                    fetch('{{ route('import.cv') }}', {
+                    fetch('<?php echo e(route('import.cv')); ?>', {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken.content,
@@ -434,5 +475,5 @@
             };
         });
     </script>
-    @endpush
-</div>
+    <?php $__env->stopPush(); ?>
+</div><?php /**PATH /home/u952164533/domains/green-alligator-418959.hostingersite.com/public_html/resources/views/livewire/work-history.blade.php ENDPATH**/ ?>

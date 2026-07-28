@@ -1,5 +1,4 @@
 <?php
-// app/Services/DeepSeekService.php
 
 namespace App\Services;
 
@@ -26,6 +25,26 @@ class DeepSeekService
                 'Content-Type' => 'application/json',
             ]
         ]);
+    }
+
+    /**
+     * ✅ NEW: Extract text from uploaded file (PDF, DOCX, DOC)
+     */
+    public function extractTextFromFile($filePath)
+    {
+        if (!file_exists($filePath)) {
+            throw new \Exception('File not found: ' . $filePath);
+        }
+
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+        if ($extension === 'pdf') {
+            return $this->extractTextFromPDF($filePath);
+        } elseif (in_array($extension, ['docx', 'doc'])) {
+            return $this->extractTextFromWord($filePath);
+        }
+
+        throw new \Exception('Unsupported file format: ' . $extension . '. Please upload PDF or Word documents.');
     }
 
     /**
@@ -269,7 +288,6 @@ class DeepSeekService
             ]);
 
             return json_decode($response->getBody(), true);
-
         } catch (\Exception $e) {
             Log::error('DeepSeek API call failed: ' . $e->getMessage());
             throw $e;

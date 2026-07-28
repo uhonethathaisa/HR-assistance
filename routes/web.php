@@ -8,21 +8,20 @@ use App\Http\Livewire\CVOptimizer;
 use App\Http\Livewire\CoverLetterOptimizer;
 use App\Http\Livewire\Settings;
 use App\Http\Controllers\OptimizedCVDownloadController;
+use App\Http\Controllers\ImportController; // 👈 Add this line
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Artisan;
 
 // Public routes - Landing page
 Route::get('/', function () {
     return view('landing');
 });
 
-
 // Test route for DeepSeek API connection
 Route::get('/test-deepseek', function () {
     $deepSeek = new \App\Services\DeepSeekService();
     $result = $deepSeek->testConnection();
-
     return response()->json($result);
 });
 
@@ -36,6 +35,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Work History - Full CRUD
     Route::get('/work-history', WorkHistory::class)->name('work-history');
+
+    // ✅ NEW: Import CV route (AJAX upload)
+    Route::post('/import-cv', [ImportController::class, 'import'])->name('import.cv');
 
     // CV Optimizer
     Route::get('/cv-optimizer', CVOptimizer::class)->name('cv-optimizer');
@@ -72,7 +74,6 @@ Route::middleware(['auth'])->group(function () {
         }, $filename, ['Content-Type' => 'application/json']);
     })->name('settings.export');
 
-
     // ============================================
     // Admin-only routes
     // ============================================
@@ -101,12 +102,10 @@ Route::middleware(['auth'])->group(function () {
             }
             return view('admin.system');
         })->name('system');
-
     });
 
     // Fallback for undefined routes
     Route::fallback(function () {
         return redirect('/dashboard');
     });
-
 });
