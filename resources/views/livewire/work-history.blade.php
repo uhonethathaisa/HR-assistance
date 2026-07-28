@@ -325,214 +325,187 @@
         @endforelse
     </div>
 
-    <!-- XHR Upload + Drag & Drop + Livewire event listener -->
+    <!-- Drag & Drop handler + Livewire event listener -->
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('file-upload');
-            const importBtn = document.getElementById('import-btn');
-            const btnText = document.getElementById('btn-text');
-            const btnSpinner = document.getElementById('btn-spinner');
-            const loadingEl = document.getElementById('import-loading');
-            const loadingStatus = document.getElementById('loading-status');
-            const loadingProgress = document.getElementById('loading-progress');
-            const loadingBar = document.getElementById('loading-bar');
-
-            /* ───────── helpers ───────── */
-
-            function updateProgress(pct, status) {
-                loadingProgress.textContent = pct + '%';
-                loadingBar.style.width = pct + '%';
-                loadingStatus.textContent = status;
-            }
-
-            function showLoading() {
-                importBtn.disabled = true;
-                btnText.classList.add('hidden');
-                btnSpinner.classList.remove('hidden');
-                loadingEl.classList.remove('hidden');
-                updateProgress(0, '📤 Uploading file...');
-                // progress-bar initial state
-                loadingBar.style.transition = 'width 0.15s ease-out';
-            }
-
-            function hideLoading() {
-                importBtn.disabled = false;
-                btnText.classList.remove('hidden');
-                btnSpinner.classList.add('hidden');
-                setTimeout(function() {
-                    loadingEl.classList.add('hidden');
-                    updateProgress(0, 'Processing...');
-                }, 2000);
-            }
-
-            /**
-             * Simulate progress after the upload wrapper ends.
-             * Covers "extracting text" + "AI processing" (40 % → 90 %).
-             */
-            function simulateParsing(onComplete) {
-                const start = Date.now();
-                const duration = 2200; // ms
-
-                loadingBar.style.transition = 'width 0.25s ease-in-out';
-
-                function tick() {
-                    var elapsed = Date.now() - start;
-                    var fraction = Math.min(elapsed / duration, 1);
-                    // 40 % → 90 %
-                    var pct = 40 + Math.round(50 * fraction);
-                    updateProgress(pct, '🤖 AI parsing' + (fraction < 1 ? '...' : ''));
-                    if (fraction < 1) {
-                        requestAnimationFrame(tick);
-                    } else if (onComplete) {
-                        onComplete();
-                    }
+        // 1. Handle File Selection via Event Delegation
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'file-upload') {
+                const file = e.target.files[0];
+                if (file) {
+                    document.getElementById('file-name').textContent = file.name;
+                    document.getElementById('file-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
+                    document.getElementById('file-info').classList.remove('hidden');
                 }
-                requestAnimationFrame(tick);
             }
+        });
 
-            /* ───────── file info display ───────── */
-
-            if (fileInput) {
-                fileInput.addEventListener('change', function(e) {
-                    var file = e.target.files[0];
-                    if (file) {
-                        document.getElementById('file-name').textContent = file.name;
-                        document.getElementById('file-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
-                        document.getElementById('file-info').classList.remove('hidden');
-                    }
-                });
-            }
-
-            /* ───────── XHR upload ───────── */
+        // 2. Handle the Import Button Click via Event Delegation
+        document.addEventListener('click', function(e) {
+            // Check if the click happened on or inside the import button
+            const importBtn = e.target.closest('#import-btn');
 
             if (importBtn) {
-                importBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
+                e.preventDefault();
 
-                    /* --- guard clauses --- */
-                    if (!fileInput || !fileInput.files || !fileInput.files.length) {
-                        alert('Please select a file first.');
-                        return;
-                    }
+                const fileInput = document.getElementById('file-upload');
+                if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    alert('Please select a file first.');
+                    return;
+                }
 
-                    var file = fileInput.files[0];
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('File is too large. Maximum allowed size is 5MB.');
-                        return;
-                    }
+                const file = fileInput.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File is too large. Maximum allowed size is 5MB.');
+                    return;
+                }
 
-                    var meta = document.querySelector('meta[name="csrf-token"]');
-                    if (!meta) {
-                        alert('CSRF token not found. Please refresh the page.');
-                        return;
-                    }
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (!csrfToken) {
+                    alert('CSRF token not found. Please refresh the page.');
+                    return;
+                }
 
-                    /* --- build FormData --- */
-                    var formData = new FormData();
-                    formData.append('file', file);
+                // Grab dynamic DOM elements right when the button is clicked
+                const btnText = document.getElementById('btn-text');
+                const btnSpinner = document.getElementById('btn-spinner');
+                const loadingEl = document.getElementById('import-loading');
+                const loadingStatus = document.getElementById('loading-status');
+                const loadingProgress = document.getElementById('loading-progress');
+                const loadingBar = document.getElementById('loading-bar');
 
-                    /* --- show loading UI --- */
-                    showLoading();
+                function updateProgress(pct, status) {
+                    if (loadingProgress) loadingProgress.textContent = pct + '%';
+                    if (loadingBar) loadingBar.style.width = pct + '%';
+                    if (loadingStatus) loadingStatus.textContent = status;
+                }
 
-                    /* --- XHR request (CRITICAL: raw XHR, NOT fetch) --- */
-                    var xhr = new XMLHttpRequest();
+                function showLoading() {
+                    importBtn.disabled = true;
+                    if (btnText) btnText.classList.add('hidden');
+                    if (btnSpinner) btnSpinner.classList.remove('hidden');
+                    if (loadingEl) loadingEl.classList.remove('hidden');
+                    updateProgress(0, 'Uploading file...');
+                }
 
-                    // Real upload progress – drives the bar from 0 % → 40 %
-                    xhr.upload.addEventListener('progress', function(e) {
-                        if (e.lengthComputable) {
-                            var pct = Math.round((e.loaded / e.total) * 40);
-                            updateProgress(pct, '📤 Uploading file...');
+                function hideLoading() {
+                    importBtn.disabled = false;
+                    if (btnText) btnText.classList.remove('hidden');
+                    if (btnSpinner) btnSpinner.classList.add('hidden');
+                    setTimeout(function() {
+                        if (loadingEl) loadingEl.classList.add('hidden');
+                        updateProgress(0, 'Processing...');
+                    }, 2000);
+                }
+
+                function simulateProgress(startPct, endPct, duration, statusPrefix, onComplete) {
+                    const startTime = Date.now();
+                    const tick = function() {
+                        const elapsed = Date.now() - startTime;
+                        const fraction = Math.min(elapsed / duration, 1);
+                        const pct = startPct + Math.round((endPct - startPct) * fraction);
+                        updateProgress(pct, statusPrefix + (fraction < 1 ? '...' : ''));
+                        if (fraction < 1) {
+                            requestAnimationFrame(tick);
+                        } else if (onComplete) {
+                            onComplete();
                         }
-                    });
+                    };
+                    requestAnimationFrame(tick);
+                }
 
-                    xhr.addEventListener('load', function() {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Start the UI simulation
+                showLoading();
+
+                simulateProgress(0, 40, 2000, '📤 Uploading', function() {
+                    updateProgress(40, '📄 Extracting text from document...');
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', importBtn.dataset.route, true);
+                    xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken.content);
+                    xhr.setRequestHeader('Accept', 'application/json');
+
+                    xhr.onload = function() {
                         if (xhr.status >= 200 && xhr.status < 300) {
-                            var data;
                             try {
-                                data = JSON.parse(xhr.responseText);
-                            } catch (parseError) {
-                                updateProgress(100, '❌ Invalid response from server');
-                                alert('Server returned an invalid response. Please try again.');
-                                hideLoading();
-                                return;
-                            }
+                                const data = JSON.parse(xhr.responseText);
 
-                            // Upload complete → 40 %
-                            updateProgress(40, '📄 Extracting text from document...');
+                                simulateProgress(40, 90, 1500, '🤖 AI parsing', function() {
+                                    updateProgress(95, '✅ Finalizing...');
 
-                            // Phase 2 – simulate "extracting + AI processing" (40 % → 90 %)
-                            simulateParsing(function() {
-                                // 90 % → 100 % finalizing
-                                loadingBar.style.transition = 'width 0.3s ease-out';
-                                updateProgress(95, '✅ Finalizing...');
-
-                                setTimeout(function() {
-                                    if (data.success) {
-                                        updateProgress(100, '✅ Import complete!');
-                                        if (window.Livewire) {
-                                            Livewire.dispatch('importCompleted', { data: data.data });
+                                    setTimeout(function() {
+                                        if (data.success) {
+                                            updateProgress(100, '✅ Import complete!');
+                                            if (window.Livewire) {
+                                                Livewire.dispatch('importCompleted', { data: data.data });
+                                            } else {
+                                                alert('✅ ' + data.message);
+                                                location.reload();
+                                            }
                                         } else {
-                                            alert('✅ ' + data.message);
-                                            location.reload();
+                                            updateProgress(100, '❌ Import failed');
+                                            alert('❌ ' + data.message);
                                         }
-                                    } else {
-                                        updateProgress(100, '❌ Import failed');
-                                        alert('❌ ' + data.message);
-                                    }
-                                    hideLoading();
-                                }, 400);
-                            });
+                                        hideLoading();
+                                    }, 500);
+                                });
+                            } catch (error) {
+                                console.error('Error parsing JSON:', error);
+                                if (loadingStatus) loadingStatus.textContent = '❌ Error parsing server response';
+                                hideLoading();
+                            }
                         } else {
-                            // HTTP error
-                            updateProgress(100, '❌ Server error');
-                            alert('Server error: ' + xhr.status + '. Please try again.');
+                            console.error('Server error:', xhr.status);
+                            if (loadingStatus) loadingStatus.textContent = '❌ Error: Server returned ' + xhr.status;
+                            alert('❌ Request failed. Server returned an error.');
                             hideLoading();
                         }
-                    });
+                    };
 
-                    xhr.addEventListener('error', function() {
-                        updateProgress(100, '❌ Network error');
-                        alert('Network error. Please check your connection and try again.');
+                    xhr.onerror = function() {
+                        console.error('Network error occurred');
+                        if (loadingStatus) loadingStatus.textContent = '❌ Error: Network connection failed';
+                        alert('❌ Request failed. Check console for details.');
                         hideLoading();
-                    });
+                    };
 
-                    xhr.addEventListener('abort', function() {
-                        updateProgress(100, '❌ Upload cancelled');
-                        hideLoading();
-                    });
-
-                    xhr.open('POST', importBtn.dataset.route, true);
-                    xhr.setRequestHeader('X-CSRF-TOKEN', meta.content);
-                    xhr.setRequestHeader('Accept', 'application/json');
                     xhr.send(formData);
                 });
             }
-
-            /* ───────── reset file ───────── */
-
-            window.resetFile = function() {
-                if (fileInput) {
-                    fileInput.value = '';
-                    document.getElementById('file-info').classList.add('hidden');
-                }
-            };
-
-            /* ───────── drag & drop ───────── */
-
-            window.handleFileDrop = function(event) {
-                event.preventDefault();
-                var zone = event.currentTarget;
-                zone.classList.remove('border-purple-500', 'bg-purple-500/5');
-                var file = event.dataTransfer.files[0];
-                if (file) {
-                    var dt = new DataTransfer();
-                    dt.items.add(file);
-                    fileInput.files = dt.files;
-                    fileInput.dispatchEvent(new Event('change'));
-                }
-            };
         });
+
+        // 3. Reset file function (exposed globally for inline onclick)
+        window.resetFile = function() {
+            const fileInput = document.getElementById('file-upload');
+            if (fileInput) {
+                fileInput.value = '';
+                const fileInfo = document.getElementById('file-info');
+                if (fileInfo) fileInfo.classList.add('hidden');
+            }
+        };
+
+        // 4. Drag and drop handler (exposed globally for inline ondrop)
+        window.handleFileDrop = function(event) {
+            event.preventDefault();
+            const zone = event.currentTarget;
+            zone.classList.remove('border-purple-500', 'bg-purple-500/5');
+
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+
+                const fileInput = document.getElementById('file-upload');
+                if (fileInput) {
+                    fileInput.files = dt.files;
+                    // Dispatch change event with bubbling so our document listener catches it
+                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        };
     </script>
     @endpush
 </div>
