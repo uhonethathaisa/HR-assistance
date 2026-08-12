@@ -22,8 +22,7 @@ jobs:
           password: ${{ secrets.DEPLOY_SERVER_PASSWORD }}
           script: |
             # Navigate to your domain's public directory
-            # (Update this path to your actual folder name on Hostinger, usually domains/yourdomain.com/public_html)
-            cd domains/yourdomain.com/public_html
+            cd domains/hr-assistance.online/public_html
 
             # Pull the latest changes from GitHub
             git pull origin main
