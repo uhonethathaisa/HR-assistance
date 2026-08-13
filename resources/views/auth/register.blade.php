@@ -128,6 +128,23 @@
                         <form method="POST" action="{{ route('register') }}" class="space-y-4">
                             @csrf
 
+                            {{-- Job Market conversion hook: carry the target job through registration --}}
+                            @if (request()->filled('target_job'))
+                                <input type="hidden" name="target_job" value="{{ request('target_job') }}">
+
+                                @if (!empty($targetJob))
+                                    <div class="flex items-center gap-3 bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3">
+                                        <svg class="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9.1-1.645M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                        <p class="text-sm leading-snug">
+                                            <span class="text-gray-400">You're registering to optimize your CV for</span>
+                                            <span class="text-white font-semibold">{{ $targetJob->title }}</span>
+                                            <span class="text-gray-500">at {{ $targetJob->company_name }}</span>
+                                        </p>
+                                    </div>
+                                @endif
+                            @endif
 
                             <!-- Name -->
                             <div>
@@ -167,7 +184,11 @@
                             <!-- Register Button -->
                             <button type="submit"
                                     class="w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:-translate-y-0.5">
-                                Continue to Profile →
+                                @if (!empty($targetJob))
+                                    Create Account &amp; Optimize CV →
+                                @else
+                                    Continue to Profile →
+                                @endif
                             </button>
 
                             <!-- Login Link -->

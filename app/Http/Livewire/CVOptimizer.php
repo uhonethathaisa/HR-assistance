@@ -27,6 +27,9 @@ class CVOptimizer extends Component
     public $showResults = false;
     public $selectedTemplate = 'professional';
 
+    // Job Market conversion context (pre-filled from pending_cv_optimization)
+    public $preloadedJob = null;
+
     // User data
     public $experiences = [];
     public $educations = [];
@@ -60,6 +63,19 @@ class CVOptimizer extends Component
     public function mount()
     {
         $this->loadUserData();
+
+        // If the user landed here from the job market "Optimize CV for this role"
+        // CTA, pre-fill the job context so they can start immediately.
+        $pendingJob = session('pending_cv_optimization');
+
+        if (is_array($pendingJob) && !empty($pendingJob['title'])) {
+            $this->jobTitle = $pendingJob['title'];
+            $this->companyName = $pendingJob['company_name'] ?? '';
+            $this->jobDescription = $pendingJob['description'] ?? '';
+            $this->preloadedJob = $pendingJob;
+
+            session()->forget('pending_cv_optimization');
+        }
     }
 
     public function loadUserData()

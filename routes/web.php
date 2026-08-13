@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Livewire\AdminDashboard;
+use App\Livewire\Admin\ManageJobPostings;
+use App\Livewire\Public\JobMarketPage;
 use App\Http\Livewire\AdminUserManagement;
 use App\Http\Livewire\Dashboard;
 use App\Http\Livewire\WorkHistory;
@@ -17,6 +19,9 @@ use Illuminate\Support\Facades\Artisan;
 Route::get('/', function () {
     return view('landing');
 });
+
+// Public Job Market - guest-accessible browsing of open roles (no auth required)
+Route::get('/jobs', JobMarketPage::class)->name('jobs');
 
 // Test route for DeepSeek API connection
 Route::get('/test-deepseek', function () {
@@ -83,6 +88,9 @@ Route::middleware(['auth'])->group(function () {
 
         // User Management (Livewire component)
         Route::get('/users', AdminUserManagement::class)->name('users');
+
+        // Job Market - Manage Job Postings (Livewire component)
+        Route::get('/jobs', ManageJobPostings::class)->name('jobs');
 
         // System Settings
         Route::match(['get', 'post'], '/system', function () {

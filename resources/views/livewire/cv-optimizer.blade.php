@@ -22,6 +22,23 @@
         </div>
     @endif
 
+    <!-- Pre-filled Job Context (from the Job Market conversion hook) -->
+    @if(!empty($preloadedJob))
+        <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+            <svg class="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 1.5a.75.75 0 01.75.75V4.5a.75.75 0 01-1.5 0V2.25A.75.75 0 0112 1.5zM5.636 5.636a.75.75 0 011.06 0l1.592 1.591a.75.75 0 01-1.06 1.061L5.636 6.697a.75.75 0 010-1.06zm12.728 0a.75.75 0 010 1.06l-1.591 1.592a.75.75 0 11-1.061-1.06l1.591-1.592a.75.75 0 011.06 0zM12 7.5a4.5 4.5 0 014.5 4.5c0 1.6-.836 3.008-2.1 3.836a.75.75 0 01-.412.132H9.987a.75.75 0 01-.412-.132A4.502 4.502 0 017.5 12a4.5 4.5 0 014.5-4.5zm-5.25 6.75a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V15a.75.75 0 01.75-.75zm10.5 0a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V15a.75.75 0 01.75-.75zM12 18a.75.75 0 01.75.75v.75a.75.75 0 01-1.5 0v-.75A.75.75 0 0112 18zm-7.5 2.25a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H5.25a.75.75 0 01-.75-.75z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <h4 class="text-purple-300 font-medium">Job details pre-filled for {{ $preloadedJob['title'] }}</h4>
+                <p class="text-gray-400 text-sm mt-1">
+                    We've loaded the details for this role at
+                    <span class="text-purple-400 font-medium">{{ $preloadedJob['company_name'] }}</span>.
+                    Add your work history below, upload your CV, and hit Optimize to get started.
+                </p>
+            </div>
+        </div>
+    @endif
+
     <!-- No Work History Warning -->
     @if(empty($experiences))
     <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 mb-6">

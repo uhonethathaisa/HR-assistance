@@ -30,6 +30,10 @@ jobs:
             # Install PHP dependencies
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
+            # Build frontend assets (Tailwind CSS via Vite)
+            npm ci --no-audit --no-fund
+            npm run build
+
             # Run database migrations
             php artisan migrate --force
 
