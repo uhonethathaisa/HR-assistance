@@ -20,33 +20,69 @@ class FetchRemoteJobs extends Command
      *
      * @var string
      */
-    protected $description = 'Scrape remote job postings from a target careers page and ingest them into the database.';
+    protected $description = 'Scrape remote job postings from multiple South African job boards and ingest them into the database.';
+
+    /**
+     * The scraper service used to fetch and parse each job board's HTML.
+     */
+    public function __construct(private JobScraperService $scraper)
+    {
+        parent::__construct();
+    }
 
     /**
      * Execute the console command.
      */
-    public function handle(JobScraperService $scraper)
+    public function handle()
     {
         $this->info('Starting remote job ingestion...');
 
-        // ─── TARGET URL ─────────────────────────────────────────────────────
-        // Placeholder — point this at the live careers page to scrape, e.g.
-        // https://www.example-company.com/careers
-        //
-        // Retargeting steps:
-        //   1. Inspect a job card on the target page (browser dev tools).
-        //   2. Update the CSS selectors in app/Services/JobScraperService.php.
-        //   3. Set $targetUrl below to the live page.
-        //   4. Commit & push to main to trigger the GitHub Actions deploy.
-        $targetUrl = 'https://example.com/jobs';
+        // Multi-source configuration: each entry defines a South African job
+        // board to scrape, its target URL, and the CSS selectors matching its
+        // listing markup. Verify each board's real markup in browser DevTools
+        // before enabling it for production ingestion.
+        $sources = [
+            [
+                'name' => 'Careers24',
+                'url' => 'https://www.careers24.com/jobs',
+                'selectors' => [
+                    'container' => '.job-list .job, .job-card',
+                    'title' => 'h2, .job-title',
+                    'company' => '.company, .company-name',
+                    'location' => '.location, .job-location',
+                    'description' => '.description, .job-summary',
+                    'apply_url' => 'a.apply, a[data-job-url]',
+                ],
+            ],
+            [
+                'name' => 'Pnet',
+                'url' => 'https://www.pnet.co.za/jobs',
+                'selectors' => [
+                    'container' => '.job-result, .search-item',
+                    'title' => '.job-title, h3',
+                    'company' => '.company',
+                    'location' => '.location',
+                    'description' => '.description, .job-description',
+                    'apply_url' => 'a.apply-link, .job-title a',
+                ],
+            ],
+        ];
 
-        try {
-            $jobs = $scraper->scrape($targetUrl);
+        foreach ($sources as $source) {
+            $this->info("Scraping {$source['name']} from {$source['url']}...");
+
+            try {
+                $jobs = $this->scraper->scrape($source['url'], $source['selectors']);
+            } catch (\Exception $e) {
+                $this->error("Failed to scrape {$source['name']}: {$e->getMessage()}");
+
+                continue; // Keep ingesting the remaining sources.
+            }
 
             if ($jobs === []) {
-                $this->warn('No job listings found on the target page.');
+                $this->warn("No job listings found for {$source['name']}.");
 
-                return;
+                continue;
             }
 
             $count = 0;
@@ -60,17 +96,18 @@ class FetchRemoteJobs extends Command
                         'company_name' => $job['company_name'],
                         'location' => $job['location'],
                         'description' => $job['description'],
-                        'source' => 'scraped',
+                        'source' => $source['name'],
                         'is_active' => true,
                     ]
                 );
                 $count++;
             }
 
-            $this->info("Successfully ingested/updated {$count} jobs.");
-        } catch (\Exception $e) {
-            $this->error('An error occurred during ingestion: ' . $e->getMessage());
+            $this->info("Successfully ingested/updated {$count} jobs from {$source['name']}.");
         }
+
+        $this->info('Remote job ingestion complete.');
     }
 }
+
 

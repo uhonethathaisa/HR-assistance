@@ -8,42 +8,18 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class JobScraperService
 {
-    /*
-    |--------------------------------------------------------------------------
-    | CSS SELECTORS
-    |--------------------------------------------------------------------------
-    |
-    | Retarget the scraper by updating these to match the markup of the
-    | careers page you want to scrape:
-    |
-    |   1. Open the target page in a browser and right-click a job card.
-    |   2. Inspect the HTML and note the container class (e.g. .job-card,
-    |      .job-item) and the child classes for title, company, location
-    |      and the apply link.
-    |   3. Update the selector arrays below (first match wins per field).
-    |
-    */
-
-    /** Container(s) that wrap a single job listing. */
-    protected array $listingSelectors = ['.job-listing', '.card'];
-
-    /** Title element(s) inside a listing. */
-    protected array $titleSelectors = ['h2.title', '.job-title', '.title'];
-
-    /** Company name element(s) inside a listing. */
-    protected array $companySelectors = ['.company', '.company-name'];
-
-    /** Location element(s) inside a listing. */
-    protected array $locationSelectors = ['.location', '.job-location'];
-
-    /** Description element(s) inside a listing. */
-    protected array $descriptionSelectors = ['.description', '.job-description'];
-
-    /** Apply link element(s) inside a listing. */
-    protected array $applySelectors = ['a.apply-link', 'a.apply', '.apply a', 'a[data-apply]'];
-
     /**
-     * Scrape job postings from the HTML of the given careers page.
+     * Scrape job postings from the HTML of the given URL using the provided
+     * CSS selector map, so a single service can handle many job boards with
+     * different markup structures.
+     *
+     * Expected $selectors keys (values may be a string or an array of strings):
+     *   container   - element(s) that wrap a single job listing
+     *   title       - title element(s)
+     *   company     - company name element(s)
+     *   location    - location element(s)
+     *   description - description element(s)
+     *   apply_url   - apply link element(s)
      *
      * Each returned item is formatted for direct ingestion into the
      * JobPosting schema (title, company_name, location, description, apply_url).
@@ -52,7 +28,7 @@ class JobScraperService
      *
      * @throws \RuntimeException When the target page cannot be fetched.
      */
-    public function scrape(string $url): array
+    public function scrape(string $url, array $selectors): array
     {
         $response = Http::accept('text/html')
             ->timeout(15)
@@ -66,32 +42,40 @@ class JobScraperService
 
         $crawler = new Crawler($response->body());
 
+        // Normalize each field selector (string or array) once, before the loop.
+        $container = $this->selector($selectors['container'] ?? '.job-listing, .card');
+        $title = $this->selector($selectors['title'] ?? 'h2.title, .job-title, .title');
+        $company = $this->selector($selectors['company'] ?? '.company, .company-name');
+        $location = $this->selector($selectors['location'] ?? '.location, .job-location');
+        $description = $this->selector($selectors['description'] ?? '.description, .job-description');
+        $applyUrl = $this->selector($selectors['apply_url'] ?? 'a.apply-link, a.apply, .apply a, a[data-apply]');
+
         $jobs = [];
 
-        $crawler->filter($this->selector($this->listingSelectors))->each(function (Crawler $node) use (&$jobs, $url) {
-            $title = $this->text($node, $this->titleSelectors);
-            $company = $this->text($node, $this->companySelectors);
-            $location = $this->text($node, $this->locationSelectors);
-            $description = $this->text($node, $this->descriptionSelectors);
+        $crawler->filter($container)->each(function (Crawler $node) use (&$jobs, $url, $title, $company, $location, $description, $applyUrl) {
+            $titleText = $this->text($node, $title);
+            $companyText = $this->text($node, $company);
+            $locationText = $this->text($node, $location);
+            $descriptionText = $this->text($node, $description);
 
-            $applyUrl = $this->href($node, $this->applySelectors);
+            $applyHref = $this->href($node, $applyUrl);
 
             // Fallback: treat the first anchor inside the listing as the apply link.
-            if ($applyUrl === '') {
-                $applyUrl = $this->href($node, ['a[href]']);
+            if ($applyHref === '') {
+                $applyHref = $this->href($node, 'a[href]');
             }
 
             // Skip listings that can't be published (no title / no apply link).
-            if ($title === '' || $applyUrl === '') {
+            if ($titleText === '' || $applyHref === '') {
                 return;
             }
 
             $jobs[] = [
-                'title' => $title,
-                'company_name' => $company !== '' ? $company : 'Unknown Employer',
-                'location' => $location,
-                'description' => $description,
-                'apply_url' => $this->resolveUrl($applyUrl, $url),
+                'title' => $titleText,
+                'company_name' => $companyText !== '' ? $companyText : 'Unknown Employer',
+                'location' => $locationText,
+                'description' => $descriptionText,
+                'apply_url' => $this->resolveUrl($applyHref, $url),
             ];
         });
 
@@ -99,19 +83,19 @@ class JobScraperService
     }
 
     /**
-     * Join a set of CSS selectors into a single comma-separated selector.
+     * Normalize a selector value that may be a string or an array of strings.
      */
-    protected function selector(array $selectors): string
+    protected function selector(string|array $selector): string
     {
-        return implode(', ', $selectors);
+        return is_array($selector) ? implode(', ', $selector) : $selector;
     }
 
     /**
-     * Extract and trim the text of the first element matching the selectors.
+     * Extract and trim the text of the first element matching the selector.
      */
-    protected function text(Crawler $node, array $selectors): string
+    protected function text(Crawler $node, string $selector): string
     {
-        $matches = $node->filter($this->selector($selectors));
+        $matches = $node->filter($selector);
 
         if ($matches->count() === 0) {
             return '';
@@ -121,11 +105,11 @@ class JobScraperService
     }
 
     /**
-     * Extract the href of the first element matching the selectors.
+     * Extract the href of the first element matching the selector.
      */
-    protected function href(Crawler $node, array $selectors): string
+    protected function href(Crawler $node, string $selector): string
     {
-        $matches = $node->filter($this->selector($selectors));
+        $matches = $node->filter($selector);
 
         if ($matches->count() === 0) {
             return '';
@@ -164,4 +148,5 @@ class JobScraperService
         return $origin.$path.'/'.$href;
     }
 }
+
 
