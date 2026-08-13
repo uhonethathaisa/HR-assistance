@@ -259,6 +259,10 @@
                         Testimonials
                         <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-purple-500 transition-all duration-300 group-hover:w-full"></span>
                     </a>
+                    <a href="{{ route('jobs') }}" class="text-sm font-medium text-gray-400 hover:text-white transition-colors relative group">
+                        Job Market
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-purple-500 transition-all duration-300 group-hover:w-full"></span>
+                    </a>
                 </div>
 
                 <!-- CTA Buttons -->
