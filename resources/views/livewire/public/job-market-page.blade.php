@@ -32,30 +32,71 @@
                 </p>
 
                 <!-- Search -->
-                <div class="relative max-w-2xl mx-auto">
-                    <div class="glass rounded-2xl p-2 flex items-center shadow-2xl shadow-purple-500/5 focus-within:border-purple-500/40 transition-all duration-300">
-                        <svg class="w-5 h-5 text-gray-500 ml-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                        <input
-                            type="text"
-                            wire:model.live="searchQuery"
-                            placeholder="Search by job title or location…"
-                            aria-label="Search open roles"
-                            class="w-full bg-transparent border-0 outline-none text-white placeholder-gray-500 px-4 py-3 text-base"
-                        />
-                        @if ($searchQuery !== '')
-                            <button
-                                wire:click="$set('searchQuery', '')"
-                                type="button"
-                                class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                                aria-label="Clear search"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        @endif
+                <div class="relative max-w-4xl mx-auto">
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl md:rounded-full p-2 shadow-2xl shadow-purple-500/5 focus-within:border-purple-500/40 transition-all duration-300 flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-0">
+                        <!-- What: keyword input -->
+                        <div class="flex items-center flex-1 md:pr-3">
+                            <svg class="w-5 h-5 text-slate-500 ml-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <input
+                                type="text"
+                                wire:model.live.debounce.300ms="keyword"
+                                placeholder="Job title, keywords, or company"
+                                aria-label="Search by job title, keywords, or company"
+                                class="w-full bg-transparent border-0 outline-none text-white placeholder-slate-500 px-3 py-3 md:py-2.5 text-sm md:text-base"
+                            />
+                            @if ($keyword !== '')
+                                <button
+                                    wire:click="$set('keyword', '')"
+                                    type="button"
+                                    aria-label="Clear keyword"
+                                    class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="hidden md:block w-px h-8 bg-slate-800 flex-shrink-0"></div>
+
+                        <!-- Where: location input -->
+                        <div class="flex items-center flex-1 md:pl-3">
+                            <svg class="w-5 h-5 text-slate-500 ml-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <input
+                                type="text"
+                                wire:model.live.debounce.300ms="location"
+                                placeholder="City, province, or 'remote'"
+                                aria-label="Search by location"
+                                class="w-full bg-transparent border-0 outline-none text-white placeholder-slate-500 px-3 py-3 md:py-2.5 text-sm md:text-base"
+                            />
+                            @if ($location !== '')
+                                <button
+                                    wire:click="$set('location', '')"
+                                    type="button"
+                                    aria-label="Clear location"
+                                    class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
+
+                        <!-- Find jobs button -->
+                        <button
+                            type="button"
+                            class="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl md:rounded-full transition-all duration-300 flex-shrink-0"
+                        >
+                            Find jobs
+                        </button>
                     </div>
                 </div>
             </div>
@@ -71,15 +112,21 @@
                     @if ($jobs->total() > 0)
                         Showing <span class="text-white font-semibold">{{ $jobs->firstItem() ?? 0 }}–{{ $jobs->lastItem() ?? 0 }}</span>
                         of <span class="text-white font-semibold">{{ $jobs->total() }}</span> roles
-                        @if ($searchQuery !== '')
-                            matching “<span class="text-purple-400 font-medium">{{ trim($searchQuery) }}</span>”
+                        @if ($keyword !== '' || $location !== '')
+                            matching
+                            @if ($keyword !== '')
+                                “<span class="text-purple-400 font-medium">{{ trim($keyword) }}</span>”@if ($location !== '') + @endif
+                            @endif
+                            @if ($location !== '')
+                                “<span class="text-purple-400 font-medium">{{ trim($location) }}</span>”
+                            @endif
                         @endif
                     @else
                         No roles found
                     @endif
                 </p>
 
-                <div wire:loading wire:target="searchQuery" class="inline-flex items-center gap-2 text-sm text-purple-400">
+                <div wire:loading wire:target="keyword, location" class="inline-flex items-center gap-2 text-sm text-purple-400">
                     <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
@@ -167,11 +214,22 @@
                     </div>
                     <h3 class="text-xl font-semibold text-white mb-2">No roles found</h3>
                     <p class="text-gray-400 max-w-md mx-auto">
-                        We couldn't find any open roles matching “{{ trim($searchQuery) }}”.
-                        Try a different job title or location.
+                        @if ($keyword === '' && $location === '')
+                            We couldn't find any open roles right now.
+                        @else
+                            We couldn't find any open roles matching
+                            @if ($keyword !== '')
+                                “{{ trim($keyword) }}”@if ($location !== '') and @endif
+                            @endif
+                            @if ($location !== '')
+                                “{{ trim($location) }}”
+                            @endif
+                            .
+                        @endif
+                        Try a different job title, keyword, company, or location.
                     </p>
                     <button
-                        wire:click="$set('searchQuery', '')"
+                        wire:click="resetSearch"
                         type="button"
                         class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-xl btn-primary glow-purple">
                         Clear search

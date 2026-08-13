@@ -37,7 +37,9 @@ class PublicJobMarketTest extends TestCase
             ->assertOk()
             ->assertSee('Explore')
             ->assertSee('Open Roles')
-            ->assertSee('Search by job title or location');
+            ->assertSee('Job title, keywords, or company')
+            ->assertSee("City, province, or 'remote'", false)
+            ->assertSee('Find jobs');
     }
 
     public function test_only_active_job_postings_are_displayed(): void
@@ -54,31 +56,64 @@ class PublicJobMarketTest extends TestCase
             ->assertDontSee('Hidden Inactive Role');
     }
 
-    public function test_search_filters_jobs_by_title(): void
+    public function test_keyword_filters_jobs_by_title(): void
     {
         $this->createJob(['title' => 'Senior Laravel Developer']);
         $this->createJob(['title' => 'Data Analyst']);
 
         Livewire::test(JobMarketPage::class)
-            ->set('searchQuery', 'Laravel')
+            ->set('keyword', 'Laravel')
             ->assertOk()
             ->assertSee('Senior Laravel Developer')
             ->assertDontSee('Data Analyst');
     }
 
-    public function test_search_filters_jobs_by_location(): void
+    public function test_keyword_matches_company_and_description(): void
+    {
+        $this->createJob(['company_name' => 'Globex', 'title' => 'Backend Engineer']);
+        $this->createJob(['description' => 'Strong focus on machine learning models.', 'title' => 'Data Scientist']);
+
+        Livewire::test(JobMarketPage::class)
+            ->set('keyword', 'Globex')
+            ->assertOk()
+            ->assertSee('Backend Engineer')
+            ->assertDontSee('Data Scientist');
+
+        Livewire::test(JobMarketPage::class)
+            ->set('keyword', 'machine learning')
+            ->assertOk()
+            ->assertSee('Data Scientist')
+            ->assertDontSee('Backend Engineer');
+    }
+
+    public function test_location_filters_jobs_by_location(): void
     {
         $this->createJob(['location' => 'Johannesburg, Gauteng']);
         $this->createJob(['location' => 'Durban, KwaZulu-Natal']);
 
         Livewire::test(JobMarketPage::class)
-            ->set('searchQuery', 'Johannesburg')
+            ->set('location', 'Johannesburg')
             ->assertOk()
             ->assertSee('Johannesburg, Gauteng')
             ->assertDontSee('Durban, KwaZulu-Natal');
     }
 
-    public function test_search_query_resets_the_pagination(): void
+    public function test_keyword_and_location_filters_combine(): void
+    {
+        $this->createJob(['title' => 'Laravel Dev Cape', 'location' => 'Cape Town, Western Cape']);
+        $this->createJob(['title' => 'Laravel Dev Durban', 'location' => 'Durban, KwaZulu-Natal']);
+        $this->createJob(['title' => 'React Dev Cape', 'location' => 'Cape Town, Western Cape']);
+
+        Livewire::test(JobMarketPage::class)
+            ->set('keyword', 'Laravel')
+            ->set('location', 'Cape Town')
+            ->assertOk()
+            ->assertSee('Laravel Dev Cape')
+            ->assertDontSee('Laravel Dev Durban')
+            ->assertDontSee('React Dev Cape');
+    }
+
+    public function test_search_resets_the_pagination(): void
     {
         for ($i = 1; $i <= 12; $i++) {
             $this->createJob(['title' => "Standard Role {$i}"]);
@@ -92,13 +127,19 @@ class PublicJobMarketTest extends TestCase
             ->assertSee('Unique Last Role')
             ->assertDontSee('Standard Role 1');
 
-        // Changing the search should bring us back to page 1.
+        // Changing the keyword should bring us back to page 1.
         Livewire::test(JobMarketPage::class)
             ->call('gotoPage', 2)
-            ->set('searchQuery', 'Role')
+            ->set('keyword', 'Role')
             ->assertSet('paginators.page', 1)
             ->assertSee('Standard Role 1')
             ->assertDontSee('Unique Last Role');
+
+        // Changing the location should also bring us back to page 1.
+        Livewire::test(JobMarketPage::class)
+            ->call('gotoPage', 2)
+            ->set('location', 'Cape Town')
+            ->assertSet('paginators.page', 1);
     }
 
     public function test_apply_button_opens_the_external_url_in_a_new_secure_tab(): void

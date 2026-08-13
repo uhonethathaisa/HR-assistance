@@ -15,10 +15,16 @@ class JobMarketPage extends Component
     use WithPagination;
 
     /**
-     * The search query, live-bound to the search input via wire:model.live.
-     * Matches against both the job title and location columns.
+     * Keyword search, live-bound to the "What" input via wire:model.live.debounce.
+     * Matches against title, company_name and description.
      */
-    public string $searchQuery = '';
+    public string $keyword = '';
+
+    /**
+     * Location search, live-bound to the "Where" input via wire:model.live.debounce.
+     * Matches against the location column.
+     */
+    public string $location = '';
 
     /**
      * Use the Tailwind-styled pagination views.
@@ -26,27 +32,50 @@ class JobMarketPage extends Component
     protected $paginationTheme = 'tailwind';
 
     /**
-     * Reset back to page 1 whenever the search query is updated.
+     * Reset back to page 1 whenever the keyword changes.
      */
-    public function updatingSearchQuery(): void
+    public function updatingKeyword(): void
     {
         $this->resetPage();
     }
 
     /**
-     * Fetch active job postings, optionally filtered by the search query.
+     * Reset back to page 1 whenever the location changes.
+     */
+    public function updatingLocation(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Clear both search fields.
+     */
+    public function resetSearch(): void
+    {
+        $this->keyword = '';
+        $this->location = '';
+        $this->resetPage();
+    }
+
+    /**
+     * Fetch active job postings, optionally filtered by keyword and/or location.
      */
     public function render()
     {
-        $search = trim($this->searchQuery);
+        $keyword = trim($this->keyword);
+        $location = trim($this->location);
 
         $jobs = JobPosting::query()
             ->where('is_active', true)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('location', 'like', "%{$search}%");
+            ->when($keyword !== '', function ($query) use ($keyword) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('title', 'like', "%{$keyword}%")
+                        ->orWhere('company_name', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%");
                 });
+            })
+            ->when($location !== '', function ($query) use ($location) {
+                $query->where('location', 'like', "%{$location}%");
             })
             ->latest()
             ->paginate(12);
