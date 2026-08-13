@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
@@ -37,7 +37,9 @@ jobs:
             # Run database migrations
             php artisan migrate --force
 
-            # Clear and rebuild caches
+            # Clear and rebuild caches.
+            # NOTE: route:cache is intentionally omitted - this app uses closure
+            # routes (/, /test-deepseek, /settings/export, /admin/system, fallback)
+            # which cannot be serialized and would fail the deploy.
             php artisan config:cache
-            php artisan route:cache
             php artisan view:cache
