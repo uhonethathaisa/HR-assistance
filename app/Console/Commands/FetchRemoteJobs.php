@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\JobPosting;
+use App\Services\IndeedApiService;
 use App\Services\JobScraperService;
 use Illuminate\Console\Command;
 
@@ -25,8 +26,10 @@ class FetchRemoteJobs extends Command
     /**
      * The scraper service used to fetch and parse each job board's HTML.
      */
-    public function __construct(private JobScraperService $scraper)
-    {
+    public function __construct(
+        private JobScraperService $scraper,
+        private IndeedApiService $indeed,
+    ) {
         parent::__construct();
     }
 
@@ -111,6 +114,50 @@ class FetchRemoteJobs extends Command
             }
 
             $this->info("Successfully ingested/updated {$count} jobs from {$source['name']}.");
+        }
+
+        // Indeed via RapidAPI: ingest the two primary role queries.
+        $indeedQueries = [
+            ['query' => 'Test Analyst', 'location' => 'South Africa'],
+            ['query' => 'Developer', 'location' => 'South Africa'],
+        ];
+
+        foreach ($indeedQueries as $params) {
+            $this->info("Fetching Indeed jobs for '{$params['query']}' in {$params['location']}...");
+
+            try {
+                $jobs = $this->indeed->fetchJobs($params['query'], $params['location']);
+            } catch (\Exception $e) {
+                $this->error("Failed to fetch Indeed jobs for '{$params['query']}': {$e->getMessage()}");
+
+                continue;
+            }
+
+            if ($jobs === []) {
+                $this->warn("No Indeed jobs returned for '{$params['query']}'.");
+
+                continue;
+            }
+
+            $count = 0;
+
+            foreach ($jobs as $job) {
+                // Prevent duplicates via updateOrCreate on apply_url.
+                JobPosting::updateOrCreate(
+                    ['apply_url' => $job['apply_url']],
+                    [
+                        'title' => $job['title'],
+                        'company_name' => $job['company'],
+                        'location' => $job['location'],
+                        'description' => $job['description'],
+                        'source' => 'Indeed',
+                        'is_active' => true,
+                    ]
+                );
+                $count++;
+            }
+
+            $this->info("Successfully ingested/updated {$count} Indeed jobs for '{$params['query']}'.");
         }
 
         $this->info('Remote job ingestion complete.');
