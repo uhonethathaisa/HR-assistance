@@ -58,12 +58,12 @@ class FetchRemoteJobs extends Command
                 'name' => 'Pnet',
                 'url' => 'https://www.pnet.co.za/jobs',
                 'selectors' => [
-                    'container' => '.job-result, .search-item',
-                    'title' => '.job-title, h3',
-                    'company' => '.company',
-                    'location' => '.location',
-                    'description' => '.description, .job-description',
-                    'apply_url' => 'a.apply-link, .job-title a',
+                    'container' => 'article[data-qa="result-item"]',
+                    'title'     => '[data-qa="job-title"]',
+                    'company'   => '[data-qa="company-name"]',
+                    'location'  => '[data-qa="job-location"]',
+                    'description' => '[data-qa="job-snippet"]', // Or fallback to a generic snippet class if this doesn't exist
+                    'apply_url' => 'a[data-qa="job-title"]', // The title usually contains the link
                 ],
             ],
         ];
