@@ -102,16 +102,41 @@ class JobScraperService
 
     /**
      * Extract and trim the text of the first element matching the selector.
+     *
+     * A selector may end with an "@attribute" suffix to extract an HTML
+     * attribute value instead of the element's text content, e.g.
+     * "img[alt]@alt" or "[data-location]@data-location".
      */
     protected function text(Crawler $node, string $selector): string
     {
+        [$selector, $attribute] = $this->extractSelectorAttribute($selector);
+
         $matches = $node->filter($selector);
 
         if ($matches->count() === 0) {
             return '';
         }
 
+        if ($attribute !== null) {
+            return trim((string) $matches->first()->attr($attribute));
+        }
+
         return trim($matches->first()->text());
+    }
+
+    /**
+     * Split a trailing "@attribute" suffix off a CSS selector so callers can
+     * extract attribute values (e.g. an <img> alt text) instead of element text.
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    protected function extractSelectorAttribute(string $selector): array
+    {
+        if (preg_match('/^(.*?)\s*@([\w-]+)$/', $selector, $matches)) {
+            return [$matches[1], $matches[2]];
+        }
+
+        return [$selector, null];
     }
 
     /**

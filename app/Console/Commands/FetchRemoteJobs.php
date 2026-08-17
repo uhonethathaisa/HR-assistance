@@ -46,12 +46,19 @@ class FetchRemoteJobs extends Command
                 'name' => 'Careers24',
                 'url' => 'https://www.careers24.com/jobs',
                 'selectors' => [
-                    'container' => '.job-list .job, .job-card',
-                    'title' => 'h2, .job-title',
-                    'company' => '.company, .company-name',
-                    'location' => '.location, .job-location',
+                    // Verified against the live listing markup: each job is a
+                    // div.job-card; the title + apply link share the same
+                    // anchor; the company name only exists in the logo's alt
+                    // attribute (hence @alt); the location is exposed via the
+                    // data-location attribute on the share button. The listing
+                    // cards carry no description snippet, so that field is
+                    // intentionally left blank here.
+                    'container' => '.job-card',
+                    'title' => 'a[data-control="vacancy-title"]',
+                    'company' => 'img[alt]@alt',
+                    'location' => '[data-location]@data-location',
                     'description' => '.description, .job-summary',
-                    'apply_url' => 'a.apply, a[data-job-url]',
+                    'apply_url' => 'a[data-control="vacancy-title"]',
                 ],
             ],
             [
