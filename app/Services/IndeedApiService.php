@@ -32,7 +32,9 @@ class IndeedApiService
             'x-rapidapi-key' => $apiKey,
             'Content-Type' => 'application/json',
         ])
-            ->timeout(30)
+            // Scraper APIs run headless browsers server-side and can take well
+            // over 30 seconds; allow enough headroom for slow upstream responses.
+            ->timeout(90)
             ->post(self::ENDPOINT, [
                 'scraper' => [
                     'maxRows' => $maxRows,
@@ -60,19 +62,31 @@ class IndeedApiService
     }
 
     /**
-     * Normalize the upstream response into the ingestion format, tolerating the
+     * Normalize the upstream response into the ingestion format. The provider
+     * returns a BullMQ job envelope whose actual job listings are a list under
+     * "returnvalue.data"; the response shape is deliberately tolerated for the
      * different field namings used by Indeed scraper providers.
      *
      * @return array<int, array{title: string, company: string, location: string, description: string, apply_url: string}>
      */
     private function mapJobs(array $data): array
     {
-        $items = $data['results'] ?? $data['jobs'] ?? null;
+        if (($data['state'] ?? null) === 'failed') {
+            throw new \RuntimeException('Indeed API scraping job failed.');
+        }
 
-        if ($items === null && isset($data['data'])) {
-            $items = $this->isList($data['data'])
-                ? $data['data']
-                : ($data['data']['results'] ?? $data['data']['jobs'] ?? null);
+        $returnValue = $data['returnvalue'] ?? null;
+
+        if (is_array($returnValue)) {
+            $items = $returnValue['data'] ?? $returnValue['results'] ?? $returnValue['jobs'] ?? $returnValue;
+        } else {
+            $items = $data['results'] ?? $data['jobs'] ?? null;
+
+            if ($items === null && isset($data['data']) && is_array($data['data'])) {
+                $items = $this->isList($data['data'])
+                    ? $data['data']
+                    : ($data['data']['results'] ?? $data['data']['jobs'] ?? null);
+            }
         }
 
         if (!is_array($items) || $items === []) {
@@ -87,7 +101,7 @@ class IndeedApiService
             }
 
             $title = $this->first($item, ['title', 'jobTitle', 'job_title', 'positionName']);
-            $applyUrl = $this->first($item, ['url', 'applyLink', 'apply_url', 'link', 'jobUrl', 'job_url', 'externalUrl', 'jobLink']);
+            $applyUrl = $this->first($item, ['jobUrl', 'job_url', 'url', 'applyLink', 'apply_url', 'link', 'externalUrl']);
 
             if ($title === '' || $applyUrl === '') {
                 continue; // Skip listings that can't be published.
@@ -95,14 +109,37 @@ class IndeedApiService
 
             $jobs[] = [
                 'title' => $title,
-                'company' => $this->first($item, ['company', 'companyName', 'company_name', 'employer']),
-                'location' => $this->first($item, ['location', 'jobLocation', 'job_location', 'city']),
-                'description' => $this->first($item, ['description', 'jobDescription', 'job_description', 'snippet', 'jobSnippet', 'summary']),
+                'company' => $this->first($item, ['companyName', 'company_name', 'company', 'employer']),
+                'location' => $this->locationText($item['location'] ?? null),
+                'description' => $this->first($item, ['descriptionText', 'descriptionHtml', 'description', 'jobDescription', 'job_description', 'snippet', 'jobSnippet', 'summary']),
                 'apply_url' => $applyUrl,
             ];
         }
 
         return $jobs;
+    }
+
+    /**
+     * Normalize a location value that may be a plain string or a structured
+     * object (e.g. {"city": "...", "formattedAddressShort": "..."}).
+     *
+     * @param mixed $location
+     */
+    private function locationText($location): string
+    {
+        if (is_string($location) && trim($location) !== '') {
+            return trim($location);
+        }
+
+        if (is_array($location)) {
+            foreach (['formattedAddressShort', 'formattedAddressLong', 'fullAddress', 'city'] as $key) {
+                if (isset($location[$key]) && is_scalar($location[$key]) && trim((string) $location[$key]) !== '') {
+                    return trim((string) $location[$key]);
+                }
+            }
+        }
+
+        return '';
     }
 
     /**
