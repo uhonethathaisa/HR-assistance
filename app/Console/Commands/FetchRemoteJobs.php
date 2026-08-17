@@ -40,29 +40,56 @@ class FetchRemoteJobs extends Command
     {
         $this->info('Starting remote job ingestion...');
 
+        // Shared, verified selector map for Careers24. Every industry search
+        // below uses the same listing markup: each job is a div.job-card; the
+        // title + apply link share the same anchor; the company name only
+        // exists in the logo's alt attribute (hence @alt); the location is
+        // exposed via the data-location attribute on the share button. The
+        // listing cards carry no description snippet, so that field is
+        // intentionally left blank here.
+        $careers24Selectors = [
+            'container' => '.job-card',
+            'title' => 'a[data-control="vacancy-title"]',
+            'company' => 'img[alt]@alt',
+            'location' => '[data-location]@data-location',
+            'description' => '.description, .job-summary',
+            'apply_url' => 'a[data-control="vacancy-title"]',
+        ];
+
         // Multi-source configuration: each entry defines a South African job
         // board to scrape, its target URL, and the CSS selectors matching its
-        // listing markup. Verify each board's real markup in browser DevTools
-        // before enabling it for production ingestion.
+        // listing markup. Careers24 entries use location-scoped search URLs
+        // (lc-south-africa) per industry and paginate up to "max_pages" deep.
         $sources = [
             [
-                'name' => 'Careers24',
-                'url' => 'https://www.careers24.com/jobs',
-                'selectors' => [
-                    // Verified against the live listing markup: each job is a
-                    // div.job-card; the title + apply link share the same
-                    // anchor; the company name only exists in the logo's alt
-                    // attribute (hence @alt); the location is exposed via the
-                    // data-location attribute on the share button. The listing
-                    // cards carry no description snippet, so that field is
-                    // intentionally left blank here.
-                    'container' => '.job-card',
-                    'title' => 'a[data-control="vacancy-title"]',
-                    'company' => 'img[alt]@alt',
-                    'location' => '[data-location]@data-location',
-                    'description' => '.description, .job-summary',
-                    'apply_url' => 'a[data-control="vacancy-title"]',
-                ],
+                'name' => 'Careers24 - Finance',
+                'url' => 'https://www.careers24.com/jobs/lc-south-africa/q-finance/',
+                'max_pages' => 3,
+                'selectors' => $careers24Selectors,
+            ],
+            [
+                'name' => 'Careers24 - Engineering',
+                'url' => 'https://www.careers24.com/jobs/lc-south-africa/q-engineering/',
+                'max_pages' => 3,
+                'selectors' => $careers24Selectors,
+            ],
+            [
+                'name' => 'Careers24 - Healthcare',
+                'url' => 'https://www.careers24.com/jobs/lc-south-africa/q-healthcare/',
+                'max_pages' => 3,
+                'selectors' => $careers24Selectors,
+            ],
+            [
+                'name' => 'Careers24 - Retail',
+                'url' => 'https://www.careers24.com/jobs/lc-south-africa/q-retail/',
+                'max_pages' => 3,
+                'selectors' => $careers24Selectors,
+            ],
+            [
+                'name' => 'Careers24 - IT & Software',
+                'url' => 'https://www.careers24.com/jobs/lc-south-africa/q-software-developer/',
+                'max_pages' => 3,
+                'selectors' => $careers24Selectors,
             ],
             [
                 'name' => 'Pnet',
@@ -79,18 +106,39 @@ class FetchRemoteJobs extends Command
         ];
 
         foreach ($sources as $source) {
-            $this->info("Scraping {$source['name']} from {$source['url']}...");
+            $maxPages = $source['max_pages'] ?? 1;
+            $jobs = [];
+            $scrapeFailed = false;
 
-            try {
-                $jobs = $this->scraper->scrape($source['url'], $source['selectors']);
-            } catch (\Exception $e) {
-                $this->error("Failed to scrape {$source['name']}: {$e->getMessage()}");
+            for ($page = 1; $page <= $maxPages; $page++) {
+                $pageUrl = $this->sourcePageUrl($source['url'], $page);
 
-                continue; // Keep ingesting the remaining sources.
+                $this->info("Scraping {$source['name']} ({$pageUrl}) - page {$page}/{$maxPages}...");
+
+                try {
+                    $pageJobs = $this->scraper->scrape($pageUrl, $source['selectors']);
+                } catch (\Exception $e) {
+                    $this->error("Failed to scrape {$source['name']} page {$page}: {$e->getMessage()}");
+                    $scrapeFailed = true;
+
+                    break; // Don't keep hammering a source that is failing.
+                }
+
+                $jobs = array_merge($jobs, $pageJobs);
+
+                // A page with no listings means the results are exhausted.
+                if ($pageJobs === []) {
+                    break;
+                }
             }
 
+            // The same listing can appear on consecutive pages; dedupe before saving.
+            $jobs = collect($jobs)->unique('apply_url')->values()->all();
+
             if ($jobs === []) {
-                $this->warn("No job listings found for {$source['name']}.");
+                if (! $scrapeFailed) {
+                    $this->warn("No job listings found for {$source['name']}.");
+                }
 
                 continue;
             }
@@ -116,25 +164,23 @@ class FetchRemoteJobs extends Command
             $this->info("Successfully ingested/updated {$count} jobs from {$source['name']}.");
         }
 
-        // Indeed via RapidAPI: ingest the two primary role queries.
-        $indeedQueries = [
-            ['query' => 'Test Analyst', 'location' => 'South Africa'],
-            ['query' => 'Developer', 'location' => 'South Africa'],
-        ];
+        // Indeed via RapidAPI: query a range of professional roles, all
+        // explicitly locked to South Africa ('za' country code).
+        $indeedQueries = ['Financial Accountant', 'Mechanical Engineer', 'Retail Manager', 'Registered Nurse', 'HR Business Partner', 'Test Analyst'];
 
-        foreach ($indeedQueries as $params) {
-            $this->info("Fetching Indeed jobs for '{$params['query']}' in {$params['location']}...");
+        foreach ($indeedQueries as $query) {
+            $this->info("Fetching Indeed jobs for '{$query}' in South Africa...");
 
             try {
-                $jobs = $this->indeed->fetchJobs($params['query'], $params['location']);
+                $jobs = $this->indeed->fetchJobs($query, 'South Africa', 'za');
             } catch (\Exception $e) {
-                $this->error("Failed to fetch Indeed jobs for '{$params['query']}': {$e->getMessage()}");
+                $this->error("Failed to fetch Indeed jobs for '{$query}': {$e->getMessage()}");
 
                 continue;
             }
 
             if ($jobs === []) {
-                $this->warn("No Indeed jobs returned for '{$params['query']}'.");
+                $this->warn("No Indeed jobs returned for '{$query}'.");
 
                 continue;
             }
@@ -157,10 +203,26 @@ class FetchRemoteJobs extends Command
                 $count++;
             }
 
-            $this->info("Successfully ingested/updated {$count} Indeed jobs for '{$params['query']}'.");
+            $this->info("Successfully ingested/updated {$count} Indeed jobs for '{$query}'.");
         }
 
         $this->info('Remote job ingestion complete.');
+    }
+
+    /**
+     * Build the URL for a given page of a source. Page 1 uses the base URL
+     * unchanged; later pages append the "?page=N" query parameter supported by
+     * the job boards (verified for Careers24).
+     */
+    protected function sourcePageUrl(string $url, int $page): string
+    {
+        if ($page <= 1) {
+            return $url;
+        }
+
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.'page='.$page;
     }
 }
 
